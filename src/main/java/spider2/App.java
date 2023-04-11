@@ -14,35 +14,42 @@ import org.jsoup.nodes.*;
 public class App {
     
 
-    private static final String HOST = "smt-stage.qa.siliconmtn.com";
-    private static final int PORT_NUMBER = 443;
+    public static final String HOST = "smt-stage.qa.siliconmtn.com";
+    public static final int PORT_NUMBER = 443;
     
     private List<Document> docs = null;
 	private Set<String> urls = null;
+	
+	Parser parser;
 
-    
-    public void crawl() {
-    	Connection c = new Connection(HOST, PORT_NUMBER);
-    	HTMLParser parser = new HTMLParser(c);
-    	
-    	
-    	
-//        	c.makeConnection(HOST, PORT_NUMBER);
-        	urls = parser.collectRelativeURLs(HOST);
-        	docs = parser.buildDocs(urls);
-//        	for(Document doc: docs) {
-//        		System.out.println(doc.);
-//        	}
-        	//while the set contains relative urls
-        		//make get requests and write html files to file system
-        	
-//    	} catch (IOException e) {
-//    		e.printStackTrace();
-//    	} 
-    }
 
     public static void main(String args[]){
     	App app = new App();
-    	app.crawl();
+    	//app.crawl();
+    	app.enterAdmin();
     }
+    
+    /** First half of the assignment connects 
+     * 
+     */
+    public void crawl() {
+    	Connector connection = new Connector(HOST, PORT_NUMBER);
+    	parser = new Parser();
+    	
+    	String baseHTML = connection.getHTML(HOST, PORT_NUMBER, "/");
+    	
+    	urls = parser.collectRelativeURLs(baseHTML);
+    	docs = connection.buildDocs(urls);
+
+    	//parser.documentToFile(docs); this is correct
+    }
+    
+    public void enterAdmin() {
+    	Connector connection = new Connector(HOST, PORT_NUMBER);
+    	parser = new Parser();
+    	
+    	String html = connection.postRequest(HOST, PORT_NUMBER);
+    	//I have cookies saved in Connector need to crawl thru the admin site while passing these cookies
+    }
+
 }
