@@ -24,7 +24,7 @@ import org.jsoup.nodes.Document;
  * 
  * @author Evan Swett
  * @version 3.0
- * @since April 12, 2023
+ * @since April 13, 2023
  * <b>updates:</b>
  * 
  ****************************************************************************/
@@ -78,7 +78,8 @@ public class Connector {
 	        out.println("Cookie: " + jid );	        
 	        out.println("Connection: close"); //Without this the server waits to listen to old sockets
 	        out.println("\n");
-	        
+	        out.flush();
+
 	        String inData = null;
 	    	
 	        while((inData = in.readLine()) != null) {
@@ -114,14 +115,15 @@ public class Connector {
     		
     		System.out.println("admin socket made");
     		
-    		out.println("POST " + path + " HTTP/1.1"); //adding these carriage returns made the call work / " + path + "
+    		//HTTP POST Request
+    		out.println("POST " + path + " HTTP/1.1");
 	        out.println("Host: " + host);
 	        out.println("Connection: close"); //Without this the server waits to listen to old sockets
 
 	        out.println("Content-Type: application/x-www-form-urlencoded");
 	        out.println("Content-Length: " + formData.length());
-	        out.println();
-	        out.println(formData);
+	        out.println(); //make space so that the server knows the rest is the body
+	        out.println(formData); //pass in login credentials
 	        out.flush();
 	        
 	        String inData = null;
