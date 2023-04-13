@@ -6,19 +6,17 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.HashSet;
-
 import javax.net.ssl.*;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 
 /****************************************************************************
- * <b>Title:</b> Connection.java
+ * <b>Title:</b> Connector.java
  * <b>Project:</b> Spider
- * <b>Description:</b> Class to make client-server connection via a socket
- * with input and output streams
+ * <b>Description:</b> Class that is used to create the client/server connection
+ * by utilizing SSL Sockets. This class has methods to do GET and POST requests
+ * while preserving the session via cookies.
  * 
  * 
  * <b>Copyright:</b> Copyright (c) 2023
@@ -26,18 +24,16 @@ import org.jsoup.nodes.Document;
  * 
  * @author Evan Swett
  * @version 3.0
- * @since April 4, 2023
+ * @since April 12, 2023
  * <b>updates:</b>
  * 
  ****************************************************************************/
 
 public class Connector {
 	
-//    SSLSocket socket = null; // how come this is not used?
     private String baseURL;
     private int port;
-    
-    Set<String> cookies = new HashSet<>();
+    private String jid;
     /**
      * Parameterized constructor to set default values for the address and port
      * we're working with
@@ -47,6 +43,7 @@ public class Connector {
     Connector(String host, int port) {
     	baseURL = host;
     	this.port = port;
+        jid = null;
     }
     
     /** getHTML makes a socket connection to the server and makes an http GET
@@ -74,15 +71,18 @@ public class Connector {
     		
     		System.out.println("Socket made");
     		
+    		// Request Header
     		out.println("GET " + path + " HTTP/1.1"); //adding these carriage returns made the call work / " + path + "
 	        out.println("Host: " + host);
+	        //pass in the JSESSIONID
+	        out.println("Cookie: " + jid );	        
 	        out.println("Connection: close"); //Without this the server waits to listen to old sockets
-	        out.println();
+	        out.println("\n");
 	        
 	        String inData = null;
 	    	
 	        while((inData = in.readLine()) != null) {
-	           html.append(inData);
+	            html.append(inData);
 	        }
 	        
     	} catch (IOException e) {
@@ -91,8 +91,15 @@ public class Connector {
     	return html.toString();
     }
     
-    
-    public String postRequest(String host, int portNumber) {
+    /** This method creates client/server connection, passes in my admin login credentials,
+     * and saves the JSESSIONID cookie upon successful authentication
+     * 
+     * @param host
+     * @param portNumber
+     * @param path
+     * @return
+     */
+    public String postRequest(String host, int portNumber, String path, String formData) {
     	StringBuilder html = new StringBuilder();
 
     	//To build an SSL socket I can use this factory method to do so
@@ -105,22 +112,26 @@ public class Connector {
     		BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     		PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
     		
-    		System.out.println("Socket made");
+    		System.out.println("admin socket made");
     		
-    		out.println("POST /admintool HTTP/1.1"); //adding these carriage returns made the call work / " + path + "
+    		out.println("POST " + path + " HTTP/1.1"); //adding these carriage returns made the call work / " + path + "
 	        out.println("Host: " + host);
-	        out.println("Connection: close");
+	        out.println("Connection: close"); //Without this the server waits to listen to old sockets
+
+	        out.println("Content-Type: application/x-www-form-urlencoded");
+	        out.println("Content-Length: " + formData.length());
 	        out.println();
+	        out.println(formData);
+	        out.flush();
 	        
 	        String inData = null;
 	    	
 	        while((inData = in.readLine()) != null) {
-	        	if(inData.startsWith("Set-Cookie")) {
-	        		System.out.println(inData.substring(12, inData.indexOf(";")));
-
-	        		cookies.add(inData.substring(12, inData.indexOf(";")));
+	        	if(inData.contains("JSESSIONID")) {
+	        		jid = inData.substring(12, inData.indexOf(";"));
 	        	}
-	            html.append(inData).append(" ");
+	            System.out.println(inData);
+	            html.append(inData);
 	        }
 	        
     	} catch (IOException e) {
@@ -129,12 +140,10 @@ public class Connector {
     	return html.toString();
     }
     
-    public Set<String> getCookies() {
-    	return cookies;
+    public String getJID() {
+    	return jid;
     }
     
-    
-
     /**
      * This method takes a set of absolute paths to all pages on the website, 
      * makes GET requests to grab page HTML data as string, and then builds
